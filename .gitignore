@@ -1,0 +1,33 @@
+# Rust build artifacts
+/target
+
+# Cargo
+# Cargo.lock -- this is an app so this should be committed,
+
+# macOS
+.DS_Store
+
+# Environment files
+.env
+.env.*
+
+# Logs
+*.log
+
+# IDE/editor
+.vscode/
+.idea/
+
+# Zed editor
+.zed/
+
+# Backup files
+*.swp
+*.swo
+*~
+
+# SQLx offline cache
+.sqlx/
+
+# Project dump file
+rust_project_dump.txt
