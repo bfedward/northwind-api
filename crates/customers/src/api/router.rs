@@ -1,7 +1,12 @@
 use axum::{Router, routing::get};
 
-use crate::api::handlers::list_customers::list_customers;
+use platform::database::db_pool::AppState;
 
-pub fn router() -> Router {
-    Router::new().route("/", get(list_customers))
+use std::sync::Arc;
+
+pub fn router() -> Router<Arc<AppState>> {
+    Router::new().route(
+        "/",
+        get(crate::api::handlers::list_customers::list_customers),
+    )
 }

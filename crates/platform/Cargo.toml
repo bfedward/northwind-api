@@ -6,3 +6,7 @@ edition = "2024"
 [dependencies]
 axum = { workspace = true }
 sqlx = { workspace = true }
+serde = { workspace = true }
+config = "0.15.19"
+secrecy = { version = "0.10.3", features = ["serde"] }
+
