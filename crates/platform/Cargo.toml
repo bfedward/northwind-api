@@ -9,4 +9,5 @@ sqlx = { workspace = true }
 serde = { workspace = true }
 config = "0.15.19"
 secrecy = { version = "0.10.3", features = ["serde"] }
+serde_json.workspace = true
 

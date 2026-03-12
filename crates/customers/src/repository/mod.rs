@@ -1,3 +1,4 @@
+use platform::errors::app_error::AppError;
 use sqlx::FromRow;
 use sqlx::PgPool;
 
@@ -28,8 +29,8 @@ impl From<CustomerDbRow> for Customer {
     }
 }
 
-pub async fn get_all_customers(pool: &PgPool) -> Result<Vec<Customer>, sqlx::Error> {
-    let rows = sqlx::query_as!(
+pub async fn get_all_customers(pool: &PgPool) -> Result<Vec<Customer>, AppError> {
+    match sqlx::query_as!(
         CustomerDbRow,
         r#"
         SELECT
@@ -45,7 +46,9 @@ pub async fn get_all_customers(pool: &PgPool) -> Result<Vec<Customer>, sqlx::Err
         "#
     )
     .fetch_all(pool)
-    .await?;
-
-    Ok(rows.into_iter().map(Customer::from).collect())
+    .await
+    {
+        Ok(customers) => Ok(customers.into_iter().map(Customer::from).collect()),
+        Err(e) => Err(AppError::DatabaseQueryError(e)),
+    }
 }
