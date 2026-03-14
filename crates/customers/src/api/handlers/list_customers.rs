@@ -1,8 +1,12 @@
-use axum::Json;
-use axum::extract::State;
+use axum::{
+    Json,
+    extract::{Query, State},
+};
+use validator::Validate;
 
-use platform::conversion::dto::IntoVecDto;
 use platform::errors::app_error::AppError;
+use platform::pagination::cursor::CursorPagination;
+use platform::pagination::page::CursorPage;
 
 use std::sync::Arc;
 
@@ -13,6 +17,11 @@ use crate::service;
 
 pub async fn list_customers(
     State(state): State<Arc<AppState>>,
-) -> Result<Json<Vec<CustomerResponseDto>>, AppError> {
-    Ok(Json(service::list_customers(&state).await?.to_dto()))
+    Query(pagination): Query<CursorPagination>,
+) -> Result<Json<CursorPage<CustomerResponseDto>>, AppError> {
+    pagination.validate().map_err(|e| AppError::Validation(e))?;
+
+    let page = service::list_customers(&state, pagination).await?;
+
+    Ok(Json(page.map(CustomerResponseDto::from)))
 }

@@ -25,7 +25,7 @@ pub enum AppError {
     RelatedEntity(String),
     ConstraintError(String),
     InvalidStructArgs(String),
-    ValidationFailed(String),
+    Validation(validator::ValidationErrors),
     DuplicateNamedEntity(EntityKind),
 }
 
@@ -49,7 +49,7 @@ impl IntoResponse for AppError {
                 StatusCode::BAD_REQUEST,
                 format!("Invalid struct args: {error}"),
             ),
-            Self::ValidationFailed(message) => (StatusCode::BAD_REQUEST, message),
+            Self::Validation(err) => (StatusCode::BAD_REQUEST, err.to_string()),
             Self::DuplicateNamedEntity(error) => (
                 StatusCode::CONFLICT,
                 format!("{error} with this name already exists!"),

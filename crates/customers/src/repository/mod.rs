@@ -1,4 +1,7 @@
 use platform::errors::app_error::AppError;
+use platform::pagination::cursor::CursorPagination;
+use platform::pagination::page::CursorPage;
+
 use sqlx::FromRow;
 use sqlx::PgPool;
 
@@ -29,26 +32,48 @@ impl From<CustomerDbRow> for Customer {
     }
 }
 
-pub async fn get_all_customers(pool: &PgPool) -> Result<Vec<Customer>, AppError> {
-    match sqlx::query_as!(
-        CustomerDbRow,
-        r#"
-        SELECT
-            id,
-            customer_code,
-            company_name,
-            contact_name,
-            contact_title,
-            city,
-            country
-        FROM customers
-        ORDER BY id
-        "#
-    )
-    .fetch_all(pool)
-    .await
-    {
-        Ok(customers) => Ok(customers.into_iter().map(Customer::from).collect()),
-        Err(e) => Err(AppError::DatabaseQueryError(e)),
-    }
+pub async fn list_customers(
+    pool: &PgPool,
+    pagination: CursorPagination,
+) -> Result<CursorPage<Customer>, AppError> {
+    let page_size = pagination.page_size();
+    let limit = page_size + 1;
+
+    let rows = if let Some(cursor) = pagination.cursor {
+        sqlx::query_as!(
+            CustomerDbRow,
+            r#"
+            SELECT id, customer_code, company_name, contact_name, contact_title, city, country
+            FROM customers
+            WHERE id > $1
+            ORDER BY id
+            LIMIT $2
+            "#,
+            cursor,
+            limit as i64
+        )
+        .fetch_all(pool)
+        .await
+        .map_err(|e| AppError::DatabaseQueryError(e))?
+    } else {
+        sqlx::query_as!(
+            CustomerDbRow,
+            r#"
+            SELECT id, customer_code, company_name, contact_name, contact_title, city, country
+            FROM customers
+            ORDER BY id
+            LIMIT $1
+            "#,
+            limit as i64
+        )
+        .fetch_all(pool)
+        .await
+        .map_err(|e| AppError::DatabaseQueryError(e))?
+    };
+
+    let rows: Vec<Customer> = rows.into_iter().map(Customer::from).collect();
+
+    let (items, next_cursor) = CursorPage::build_cursor_page(rows, page_size);
+
+    Ok(CursorPage::new(items, next_cursor))
 }
