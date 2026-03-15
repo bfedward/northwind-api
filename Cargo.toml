@@ -17,4 +17,4 @@ sqlx = { version = "0.8.6", features = [
 ] }
 chrono = { version = "0.4.43", features = ["serde"] }
 validator = { version = "0.20.0", features = ["derive"]}
-axum-valid = "0.24.0"
+thiserror = "2.0.18"

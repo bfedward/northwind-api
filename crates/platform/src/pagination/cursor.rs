@@ -7,7 +7,7 @@ pub trait CursorItem {
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct CursorPagination {
-    #[validate(range(min = 1, max = 1000))]
+    #[validate(range(min = 1, max = 1000, message = "page_size must be between 1 and 1000"))]
     pub page_size: Option<u32>,
     pub cursor: Option<i64>,
 }

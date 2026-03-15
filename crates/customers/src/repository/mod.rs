@@ -54,7 +54,7 @@ pub async fn list_customers(
         )
         .fetch_all(pool)
         .await
-        .map_err(|e| AppError::DatabaseQueryError(e))?
+        .map_err(|e| AppError::DatabaseQuery(e))?
     } else {
         sqlx::query_as!(
             CustomerDbRow,
@@ -68,7 +68,7 @@ pub async fn list_customers(
         )
         .fetch_all(pool)
         .await
-        .map_err(|e| AppError::DatabaseQueryError(e))?
+        .map_err(|e| AppError::DatabaseQuery(e))?
     };
 
     let rows: Vec<Customer> = rows.into_iter().map(Customer::from).collect();

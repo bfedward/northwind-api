@@ -19,7 +19,7 @@ pub async fn list_customers(
     State(state): State<Arc<AppState>>,
     Query(pagination): Query<CursorPagination>,
 ) -> Result<Json<CursorPage<CustomerResponseDto>>, AppError> {
-    pagination.validate().map_err(|e| AppError::Validation(e))?;
+    pagination.validate()?;
 
     let page = service::list_customers(&state, pagination).await?;
 

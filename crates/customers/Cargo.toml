@@ -5,7 +5,6 @@ edition = "2024"
 
 [dependencies]
 axum = { workspace = true }
-axum-valid = { workspace = true }
 validator = { workspace = true }
 sqlx = { workspace = true }
 serde = { workspace = true }
