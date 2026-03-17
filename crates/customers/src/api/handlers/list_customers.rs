@@ -1,7 +1,4 @@
-use axum::{
-    Json,
-    extract::{Query, State},
-};
+use axum::extract::{Query, State};
 use validator::Validate;
 
 use platform::errors::app_error::AppError;
@@ -12,16 +9,26 @@ use std::sync::Arc;
 
 use crate::api::dto::CustomerResponseDto;
 use platform::database::db_pool::AppState;
+use platform::standard_response::ApiResponse;
 
 use crate::service;
 
+#[axum::debug_handler]
 pub async fn list_customers(
     State(state): State<Arc<AppState>>,
     Query(pagination): Query<CursorPagination>,
-) -> Result<Json<CursorPage<CustomerResponseDto>>, AppError> {
-    pagination.validate()?;
+) -> ApiResponse<CursorPage<CustomerResponseDto>> {
+    let result: Result<CursorPage<CustomerResponseDto>, AppError> = async {
+        pagination.validate()?;
 
-    let page = service::list_customers(&state, pagination).await?;
+        let page = service::list_customers(&state, pagination).await?;
 
-    Ok(Json(page.map(CustomerResponseDto::from)))
+        Ok(page.map(CustomerResponseDto::from))
+    }
+    .await;
+
+    match result {
+        Ok(data) => ApiResponse::ok(data),
+        Err(err) => err.into(),
+    }
 }

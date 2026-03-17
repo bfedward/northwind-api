@@ -5,4 +5,5 @@ pub mod errors;
 mod macros;
 pub mod middleware;
 pub mod pagination;
+pub mod standard_response;
 pub mod telemetry;

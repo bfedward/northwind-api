@@ -1,15 +1,12 @@
-use axum::{
-    Json,
-    http::StatusCode,
-    response::{IntoResponse, Response},
-};
-use serde::Serialize;
 use thiserror::Error;
 use validator::ValidationErrors;
 use validator::ValidationErrorsKind;
 
 use std::collections::HashMap;
 use std::fmt;
+
+use crate::standard_response::ApiResponse;
+use crate::standard_response::error_response::ApiErrorResponse;
 
 #[derive(Debug)]
 pub enum EntityKind {
@@ -22,18 +19,6 @@ impl fmt::Display for EntityKind {
             EntityKind::Customer => write!(f, "customer"),
         }
     }
-}
-
-// RFC 7807/9457
-#[derive(Serialize)]
-pub struct ApiErrorResponse {
-    pub r#type: String,
-    pub title: String,
-    pub status: u16,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub errors: Option<HashMap<String, Vec<String>>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub detail: Option<String>,
 }
 
 #[derive(Error, Debug)]
@@ -51,56 +36,40 @@ pub enum AppError {
     Validation(#[from] ValidationErrors),
 }
 
-impl IntoResponse for AppError {
-    fn into_response(self) -> Response {
-        match self {
-            AppError::Validation(err) => {
-                let body = ApiErrorResponse {
-                    r#type: "validation_error".into(),
-                    title: "One or more validation errors occurred".into(),
-                    status: StatusCode::BAD_REQUEST.as_u16(),
-                    errors: Some(map_validation_errors(err)),
-                    detail: None,
-                };
+impl<T> From<AppError> for ApiResponse<T> {
+    fn from(err: AppError) -> Self {
+        match err {
+            AppError::Validation(e) => ApiResponse::Error(ApiErrorResponse {
+                r#type: "validation".into(),
+                title: "Validation error".into(),
+                status: 400,
+                errors: Some(map_validation_errors(e)),
+                detail: None,
+            }),
 
-                (StatusCode::BAD_REQUEST, Json(body)).into_response()
-            }
+            AppError::EntityNotFound { id, entity } => ApiResponse::Error(ApiErrorResponse {
+                r#type: "not-found".into(),
+                title: "Entity not found".into(),
+                status: 404,
+                errors: None,
+                detail: Some(format!("{entity} with id {id} not found")),
+            }),
 
-            AppError::EntityNotFound { id, entity } => {
-                let body = ApiErrorResponse {
-                    r#type: "not_found".into(),
-                    title: "Entity not found".into(),
-                    status: StatusCode::NOT_FOUND.as_u16(),
-                    errors: None,
-                    detail: Some(format!("{entity} with id {id} not found")),
-                };
+            AppError::Conflict { entity } => ApiResponse::Error(ApiErrorResponse {
+                r#type: "conflict".into(),
+                title: "Conflict".into(),
+                status: 409,
+                errors: None,
+                detail: Some(format!("{entity} causes a conflict")),
+            }),
 
-                (StatusCode::NOT_FOUND, Json(body)).into_response()
-            }
-
-            AppError::Conflict { entity } => {
-                let body = ApiErrorResponse {
-                    r#type: "conflict".into(),
-                    title: "Conflict".into(),
-                    status: StatusCode::CONFLICT.as_u16(),
-                    errors: None,
-                    detail: Some(format!("{entity} causes a conflict")),
-                };
-
-                (StatusCode::CONFLICT, Json(body)).into_response()
-            }
-
-            AppError::DatabaseQuery(e) => {
-                let body = ApiErrorResponse {
-                    r#type: "internal_error".into(),
-                    title: "Database error".into(),
-                    status: StatusCode::INTERNAL_SERVER_ERROR.as_u16(),
-                    errors: None,
-                    detail: Some(e.to_string()),
-                };
-
-                (StatusCode::INTERNAL_SERVER_ERROR, Json(body)).into_response()
-            }
+            AppError::DatabaseQuery(e) => ApiResponse::Error(ApiErrorResponse {
+                r#type: "internal-error".into(),
+                title: "Internal error".into(),
+                status: 500,
+                errors: None,
+                detail: Some(e.to_string()),
+            }),
         }
     }
 }
